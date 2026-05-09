@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Night Shift Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Night Shift Multiplayer</title>
+    <!-- PeerJS for Free WebRTC Multi-device connection -->
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -11,93 +13,84 @@
             background-color: #0a0a0a;
             color: #ffffff;
             font-family: 'Share Tech Mono', monospace;
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
             overflow: hidden;
-        }
-
-        .container {
             text-align: center;
-            background: #151515;
-            padding: 40px 60px;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(255,255,255,0.05);
-            border: 1px solid #333;
         }
 
-        h1 {
-            color: #888;
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 0;
+        .view { display: none; width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; }
+        .active-view { display: flex; flex-direction: column; align-items: center; }
+
+        /* General UI */
+        h1, h2, h3 { margin-top: 0; text-transform: uppercase; }
+        button {
+            background-color: #222; color: white; border: 2px solid #555;
+            padding: 15px 20px; margin: 10px; font-family: 'Share Tech Mono', monospace;
+            font-size: 1.2rem; cursor: pointer; border-radius: 8px; transition: 0.2s;
+            width: 80%; max-width: 300px;
+        }
+        button:hover { background-color: #444; border-color: #888; }
+        button:active { background-color: #111; }
+        input {
+            padding: 15px; font-size: 1.5rem; text-align: center; width: 200px;
+            font-family: 'Share Tech Mono', monospace; background: #111; color: white;
+            border: 2px solid #555; border-radius: 8px; margin-bottom: 20px;
         }
 
-        #clock {
-            font-size: 6rem;
-            margin: 20px 0;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-
-        /* The winning 6AM glow */
-        .win {
-            color: #ffeb3b;
-            text-shadow: 0 0 20px rgba(255, 235, 59, 0.8), 0 0 40px rgba(255, 235, 59, 0.5) !important;
-            animation: pulse 1s infinite alternate;
-        }
-
-        @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.05); }
-        }
-
+        /* Host View specific */
+        #room-code-display { color: #ffeb3b; font-size: 2rem; letter-spacing: 5px; margin-bottom: 10px; }
+        #clock { font-size: 6rem; margin: 20px 0; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+        .win { color: #ffeb3b; text-shadow: 0 0 20px rgba(255, 235, 59, 0.8) !important; }
         .progress-bar-container {
-            width: 100%;
-            height: 10px;
-            background-color: #222;
-            border-radius: 5px;
-            margin-bottom: 30px;
-            overflow: hidden;
+            width: 100%; height: 10px; background-color: #222; border-radius: 5px;
+            margin-bottom: 30px; overflow: hidden;
         }
+        #progress { height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
 
-        #progress {
-            height: 100%;
-            width: 0%;
-            background-color: #ffffff;
-            transition: width 0.1s linear;
-        }
-
-        .controls button {
-            background-color: #222;
-            color: white;
-            border: 1px solid #555;
-            padding: 10px 20px;
-            margin: 0 5px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1rem;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: all 0.2s;
-        }
-
-        .controls button:hover {
-            background-color: #444;
-            border-color: #888;
-        }
-
-        .controls button:active {
-            background-color: #111;
-        }
+        /* Animatronic View specific */
+        #player-view { background-color: black; color: white; justify-content: center; height: 100vh; }
+        .status-text { font-size: 2rem; margin-bottom: 10px; color: #888; }
+        .timer-text { font-size: 4rem; margin-bottom: 30px; color: #fff; }
+        .action-btn { background-color: #aa0000; border-color: #ff0000; font-size: 1.5rem; font-weight: bold; display: none; }
+        .action-btn:hover { background-color: #ff0000; }
+        
+        #btn-caught { background-color: #0044aa; border-color: #0088ff; }
+        #btn-caught:hover { background-color: #0088ff; }
+        
+        .animatronic-title { font-size: 1.5rem; color: #555; margin-bottom: 30px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <!-- MAIN MENU -->
+    <div id="menu-view" class="view active-view">
         <h1>Night Shift</h1>
+        <button onclick="setupHost()">Host Game (Computer)</button>
+        <button onclick="showJoinMenu()">Join Game (Phone/Tablet)</button>
+    </div>
+
+    <!-- JOIN MENU -->
+    <div id="join-view" class="view">
+        <h2>Enter Room Code</h2>
+        <input type="text" id="room-input" placeholder="1234" maxlength="4">
+        <h2>Select Role</h2>
+        <button onclick="joinGame('bonnie')">Join as Bonnie</button>
+        <button onclick="joinGame('freddy')">Join as Freddy</button>
+        <button onclick="showMenu()" style="margin-top:40px; background:#111; border-color:#333;">Back</button>
+        <p id="join-status" style="color: #aaa;"></p>
+    </div>
+
+    <!-- HOST VIEW -->
+    <div id="host-view" class="view">
+        <h3>Room Code</h3>
+        <div id="room-code-display">----</div>
+        <p id="connections-display">Players connected: 0</p>
+        
         <div id="clock">12:00 AM</div>
         
         <div class="progress-bar-container">
@@ -105,95 +98,334 @@
         </div>
 
         <div class="controls">
-            <button id="startBtn" onclick="startTimer()">Start</button>
-            <button id="pauseBtn" onclick="pauseTimer()">Pause</button>
-            <button id="resetBtn" onclick="resetTimer()">Reset</button>
+            <button onclick="startTimer()" style="width:auto">Start</button>
+            <button onclick="pauseTimer()" style="width:auto">Pause</button>
+            <button onclick="resetTimer()" style="width:auto">Reset</button>
         </div>
     </div>
 
-    <script>
-        // 8 minutes total real time (8 * 60 * 1000 milliseconds)
-        const TOTAL_MS = 8 * 60 * 1000; 
+    <!-- PLAYER VIEW (Animatronic) -->
+    <div id="player-view" class="view">
+        <div class="animatronic-title" id="player-role-display">ROLE</div>
+        <div class="status-text" id="player-status">Waiting for host to start...</div>
+        <div class="timer-text" id="player-timer">--:--</div>
         
-        let startTime = null;
-        let accumulatedTime = 0;
-        let isRunning = false;
-        let animationFrameId;
+        <button class="action-btn" id="btn-move" onclick="confirmMove()">CONFIRM MOVE</button>
+        <button class="action-btn" id="btn-attack" onclick="confirmAttack()">CONFIRM ATTACK</button>
+        <button class="action-btn" id="btn-caught" onclick="confirmCaught()">GOT CAUGHT</button>
+    </div>
 
-        const clockEl = document.getElementById('clock');
-        const progressEl = document.getElementById('progress');
+    <script>
+        // --- GLOBAL VARIABLES ---
+        const PREFIX = 'fnaf-timer-';
+        let peer = null;
+        let connections = [];
+        
+        // Host Timer Vars
+        const TOTAL_MS = 8 * 60 * 1000; 
+        let hostStartTime = null;
+        let hostAccumulatedTime = 0;
+        let hostIsRunning = false;
+        let currentInGameHour = 0;
+        let hostAnimationFrame;
 
-        function updateDisplay() {
+        // Client Vars
+        let clientRole = ''; // 'bonnie' or 'freddy'
+        let clientConn = null;
+        let pIsRunning = false;
+        let pMovesCompleted = 0; // 0, 1 (moves), 2 (waiting to attack)
+        let pTimeLeft = 0;
+        let pWaitingForInput = false;
+        let pLastTick = 0;
+        let pAnimationFrame;
+
+        // --- NAVIGATION ---
+        function showView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
+            document.getElementById(id).classList.add('active-view');
+        }
+        function showMenu() { showView('menu-view'); }
+        function showJoinMenu() { showView('join-view'); document.getElementById('join-status').innerText = ''; }
+
+        // ==========================================
+        //               HOST LOGIC
+        // ==========================================
+        function setupHost() {
+            showView('host-view');
+            // Generate a 4-digit random pin
+            const pin = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('room-code-display').innerText = pin;
+            
+            peer = new Peer(PREFIX + pin);
+            
+            peer.on('connection', (conn) => {
+                connections.push(conn);
+                updateConnectionCount();
+                
+                conn.on('open', () => {
+                    // Send immediate state to new connection
+                    conn.send({ type: 'sync', isRunning: hostIsRunning, hour: currentInGameHour });
+                });
+                
+                conn.on('close', () => {
+                    connections = connections.filter(c => c !== conn);
+                    updateConnectionCount();
+                });
+            });
+        }
+
+        function updateConnectionCount() {
+            document.getElementById('connections-display').innerText = `Players connected: ${connections.length}`;
+        }
+
+        function broadcastSync(isReset = false) {
+            connections.forEach(conn => {
+                conn.send({ 
+                    type: isReset ? 'reset' : 'sync', 
+                    isRunning: hostIsRunning, 
+                    hour: currentInGameHour 
+                });
+            });
+        }
+
+        function updateHostDisplay() {
             let now = Date.now();
-            let timePassed = accumulatedTime + (isRunning ? (now - startTime) : 0);
+            let timePassed = hostAccumulatedTime + (hostIsRunning ? (now - hostStartTime) : 0);
 
-            // Cap the time at 8 minutes
             if (timePassed >= TOTAL_MS) {
                 timePassed = TOTAL_MS;
-                isRunning = false;
-                clockEl.classList.add('win');
-                clockEl.innerText = "6:00 AM";
-                progressEl.style.width = "100%";
-                cancelAnimationFrame(animationFrameId);
+                hostIsRunning = false;
+                document.getElementById('clock').classList.add('win');
+                document.getElementById('clock').innerText = "6:00 AM";
+                document.getElementById('progress').style.width = "100%";
+                broadcastSync(); // final stop sync
+                cancelAnimationFrame(hostAnimationFrame);
                 return;
             }
 
-            // Calculate progress fraction (0.0 to 1.0)
             let fraction = timePassed / TOTAL_MS;
-
-            // 12AM to 6AM is 6 hours = 360 in-game minutes
             let gameMinutesPassed = Math.floor(fraction * 360);
-
-            let hour = Math.floor(gameMinutesPassed / 60);
+            
+            let newHour = Math.floor(gameMinutesPassed / 60);
             let minute = gameMinutesPassed % 60;
 
-            // Format hours (0 hours passed = 12 AM)
-            let displayHour = hour === 0 ? 12 : hour;
-            // Format minutes to always have two digits (e.g., 05)
+            if (newHour !== currentInGameHour) {
+                currentInGameHour = newHour;
+                broadcastSync(); // Sync clients whenever the hour changes so they update math
+            }
+
+            let displayHour = newHour === 0 ? 12 : newHour;
             let displayMinute = minute < 10 ? '0' + minute : minute;
 
-            clockEl.innerText = `${displayHour}:${displayMinute} AM`;
-            progressEl.style.width = `${fraction * 100}%`;
+            document.getElementById('clock').innerText = `${displayHour}:${displayMinute} AM`;
+            document.getElementById('progress').style.width = `${fraction * 100}%`;
 
-            if (isRunning) {
-                animationFrameId = requestAnimationFrame(updateDisplay);
+            if (hostIsRunning) {
+                hostAnimationFrame = requestAnimationFrame(updateHostDisplay);
             }
         }
 
         function startTimer() {
-            if (!isRunning) {
-                // Remove win effects if restarting from finish
-                if (accumulatedTime >= TOTAL_MS) {
-                    resetTimer();
-                }
-                
-                clockEl.classList.remove('win');
-                isRunning = true;
-                startTime = Date.now();
-                animationFrameId = requestAnimationFrame(updateDisplay);
+            if (!hostIsRunning) {
+                if (hostAccumulatedTime >= TOTAL_MS) resetTimer();
+                document.getElementById('clock').classList.remove('win');
+                hostIsRunning = true;
+                hostStartTime = Date.now();
+                broadcastSync();
+                hostAnimationFrame = requestAnimationFrame(updateHostDisplay);
             }
         }
 
         function pauseTimer() {
-            if (isRunning) {
-                isRunning = false;
-                accumulatedTime += Date.now() - startTime;
-                cancelAnimationFrame(animationFrameId);
+            if (hostIsRunning) {
+                hostIsRunning = false;
+                hostAccumulatedTime += Date.now() - hostStartTime;
+                broadcastSync();
+                cancelAnimationFrame(hostAnimationFrame);
             }
         }
 
         function resetTimer() {
-            isRunning = false;
-            accumulatedTime = 0;
-            startTime = null;
-            cancelAnimationFrame(animationFrameId);
-            clockEl.classList.remove('win');
+            hostIsRunning = false;
+            hostAccumulatedTime = 0;
+            currentInGameHour = 0;
+            hostStartTime = null;
+            cancelAnimationFrame(hostAnimationFrame);
+            document.getElementById('clock').classList.remove('win');
+            document.getElementById('clock').innerText = "12:00 AM";
+            document.getElementById('progress').style.width = "0%";
+            broadcastSync(true);
+        }
+
+
+        // ==========================================
+        //              PLAYER LOGIC
+        // ==========================================
+        function joinGame(role) {
+            const pin = document.getElementById('room-input').value;
+            if (pin.length !== 4) {
+                document.getElementById('join-status').innerText = "Please enter a 4-digit code.";
+                return;
+            }
+
+            document.getElementById('join-status').innerText = "Connecting...";
+            peer = new Peer(); // Client doesn't need a specific ID
             
-            // Reset visuals manually
-            clockEl.innerText = "12:00 AM";
-            progressEl.style.width = "0%";
+            peer.on('open', () => {
+                clientConn = peer.connect(PREFIX + pin);
+                
+                clientConn.on('open', () => {
+                    clientRole = role;
+                    setupPlayerUI();
+                    showView('player-view');
+                });
+
+                clientConn.on('data', (data) => {
+                    if (data.type === 'sync') {
+                        currentInGameHour = data.hour;
+                        setClientRunningState(data.isRunning);
+                    } else if (data.type === 'reset') {
+                        resetClientState();
+                    }
+                });
+
+                clientConn.on('error', () => {
+                    document.getElementById('join-status').innerText = "Failed to connect. Wrong code?";
+                });
+            });
+        }
+
+        function getMoveCooldown() {
+            // Returns milliseconds
+            if (clientRole === 'bonnie') return Math.max(0, 20 - (currentInGameHour * 2.5)) * 1000;
+            if (clientRole === 'freddy') return Math.max(0, 30 - (currentInGameHour * 5)) * 1000;
+        }
+
+        function getAttackCooldown() {
+            // Returns milliseconds
+            if (clientRole === 'bonnie') return Math.max(0, 5 - (currentInGameHour * 0.25)) * 1000;
+            if (clientRole === 'freddy') return 5 * 1000; // Freddy attack cooldown doesn't change
+        }
+
+        function setupPlayerUI() {
+            document.getElementById('player-role-display').innerText = `Role: ${clientRole.toUpperCase()}`;
+            resetClientState();
+        }
+
+        function resetClientState() {
+            pIsRunning = false;
+            pMovesCompleted = 0;
+            pWaitingForInput = false;
+            pTimeLeft = getMoveCooldown();
+            hideActionButtons();
+            document.getElementById('player-status').innerText = "Waiting for Host to start...";
+            document.getElementById('player-timer').innerText = "--:--";
+            cancelAnimationFrame(pAnimationFrame);
+        }
+
+        function setClientRunningState(running) {
+            if (running && !pIsRunning) {
+                pIsRunning = true;
+                pLastTick = Date.now();
+                pAnimationFrame = requestAnimationFrame(clientLoop);
+                updateClientText();
+            } else if (!running && pIsRunning) {
+                pIsRunning = false;
+                document.getElementById('player-status').innerText = "Game Paused by Host";
+            }
+        }
+
+        function clientLoop() {
+            if (!pIsRunning) return;
+            
+            let now = Date.now();
+            let delta = now - pLastTick;
+            pLastTick = now;
+
+            if (!pWaitingForInput) {
+                pTimeLeft -= delta;
+                
+                if (pTimeLeft <= 0) {
+                    pTimeLeft = 0;
+                    pWaitingForInput = true;
+                    showActionButtons();
+                }
+                updateClientText();
+            }
+
+            if (pIsRunning) {
+                pAnimationFrame = requestAnimationFrame(clientLoop);
+            }
+        }
+
+        function updateClientText() {
+            if (pWaitingForInput) return; // UI handles text during input phase
+
+            let secs = Math.ceil(pTimeLeft / 1000);
+            document.getElementById('player-timer').innerText = secs + "s";
+
+            if (pMovesCompleted < 2) {
+                document.getElementById('player-status').innerText = `Preparing to move (${pMovesCompleted}/2)...`;
+            } else {
+                document.getElementById('player-status').innerText = `Moving to attack position...`;
+            }
+        }
+
+        function showActionButtons() {
+            document.getElementById('player-timer').innerText = "NOW";
+            document.getElementById('btn-move').style.display = 'none';
+            document.getElementById('btn-attack').style.display = 'none';
+            document.getElementById('btn-caught').style.display = 'none';
+
+            if (pMovesCompleted < 2) {
+                document.getElementById('player-status').innerText = "TIME TO MOVE!";
+                document.getElementById('btn-move').style.display = 'block';
+            } else {
+                document.getElementById('player-status').innerText = "READY TO ATTACK!";
+                document.getElementById('btn-attack').style.display = 'block';
+                document.getElementById('btn-caught').style.display = 'block';
+            }
+        }
+
+        function hideActionButtons() {
+            document.getElementById('btn-move').style.display = 'none';
+            document.getElementById('btn-attack').style.display = 'none';
+            document.getElementById('btn-caught').style.display = 'none';
+        }
+
+        // Action Button Handlers
+        function confirmMove() {
+            pMovesCompleted++;
+            pWaitingForInput = false;
+            hideActionButtons();
+            
+            if (pMovesCompleted < 2) {
+                pTimeLeft = getMoveCooldown();
+            } else {
+                pTimeLeft = getAttackCooldown();
+            }
+            pLastTick = Date.now();
+            updateClientText();
+        }
+
+        function confirmAttack() {
+            // Attack successful, resets to standard cycle
+            cycleReset();
+        }
+
+        function confirmCaught() {
+            // Got caught, resets to standard cycle
+            cycleReset();
+        }
+
+        function cycleReset() {
+            pMovesCompleted = 0;
+            pWaitingForInput = false;
+            hideActionButtons();
+            pTimeLeft = getMoveCooldown();
+            pLastTick = Date.now();
+            updateClientText();
         }
     </script>
-
 </body>
 </html>
