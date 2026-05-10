@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Night Shift - Cameras, Intruder & Phone</title>
+    <title>Night Shift - Sanity, Cameras, Intruder & Phone</title>
     <!-- PeerJS for Free WebRTC Multi-device connection -->
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
@@ -21,133 +21,355 @@
             min-height: 100vh;
             overflow: hidden;
             text-align: center;
-            user-select: none; /* Prevents text highlighting when holding the phone button */
+            user-select: none;
         }
 
-        .view { display: none; width: 100%; height: 100%; box-sizing: border-box; }
-        .active-view { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .view { 
+            display: none; 
+            width: 100%; 
+            height: 100%; 
+            box-sizing: border-box; 
+        }
 
-        /* General UI */
-        h1, h2, h3 { margin-top: 0; text-transform: uppercase; }
+        .active-view { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+        }
+
+        h1, h2, h3 { 
+            margin-top: 0; 
+            text-transform: uppercase; 
+        }
         
         button {
-            background-color: #222;
-            color: white;
+            background-color: #222; 
+            color: white; 
             border: 2px solid #555;
-            padding: 12px 18px;
-            margin: 8px;
+            padding: 12px 18px; 
+            margin: 8px; 
             font-family: 'Share Tech Mono', monospace;
-            font-size: 1.1rem;
-            cursor: pointer;
-            border-radius: 8px;
+            font-size: 1.1rem; 
+            cursor: pointer; 
+            border-radius: 8px; 
             transition: 0.2s;
         }
-        button:hover { background-color: #444; border-color: #888; }
-        button:active { background-color: #111; }
+
+        button:hover { 
+            background-color: #444; 
+            border-color: #888; 
+        }
+
+        button:active { 
+            background-color: #111; 
+        }
         
         input, select {
-            padding: 12px;
-            font-size: 1.2rem;
-            text-align: center;
+            padding: 12px; 
+            font-size: 1.2rem; 
+            text-align: center; 
             width: 220px;
-            font-family: 'Share Tech Mono', monospace;
-            background: #111;
+            font-family: 'Share Tech Mono', monospace; 
+            background: #111; 
             color: white;
-            border: 2px solid #555;
-            border-radius: 8px;
+            border: 2px solid #555; 
+            border-radius: 8px; 
             margin-bottom: 20px;
         }
 
         /* HOST VIEW SPECIFIC */
         #host-view { 
             position: fixed; 
-            top: 0; left: 0; 
-            width: 100vw; height: 100vh; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
             background-color: #050505; 
         }
         
-        #host-view.active-view { display: block; }
+        #host-view.active-view { 
+            display: block; 
+        }
         
         #timer-overlay {
-            position: absolute;
-            top: 20px; left: 20px;
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
             background: rgba(0, 0, 0, 0.85);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #444;
+            padding: 20px; 
+            border-radius: 10px; 
+            border: 1px solid #444; 
             z-index: 10;
-            text-align: left;
-            min-width: 200px;
+            text-align: left; 
+            min-width: 200px; 
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
         
-        #timer-overlay h3 { margin: 0 0 5px 0; font-size: 1rem; color: #888; }
-        #room-code-display { color: #ffeb3b; font-size: 1.5rem; letter-spacing: 3px; margin-bottom: 10px; }
-        #clock { font-size: 3rem; margin: 5px 0; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
-        .win { color: #ffeb3b; text-shadow: 0 0 20px rgba(255, 235, 59, 0.8) !important; }
+        #timer-overlay h3 { 
+            margin: 0 0 5px 0; 
+            font-size: 1rem; 
+            color: #888; 
+        }
+
+        #room-code-display { 
+            color: #ffeb3b; 
+            font-size: 1.5rem; 
+            letter-spacing: 3px; 
+            margin-bottom: 10px; 
+        }
+
+        #clock { 
+            font-size: 3rem; 
+            margin: 5px 0; 
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); 
+        }
+
+        .win { 
+            color: #ffeb3b; 
+            text-shadow: 0 0 20px rgba(255, 235, 59, 0.8) !important; 
+        }
         
-        .progress-bar-container { width: 100%; height: 6px; background-color: #222; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
-        #progress { height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
-        .host-controls button { padding: 8px 12px; font-size: 0.9rem; margin: 2px; }
+        .progress-bar-container { 
+            width: 100%; 
+            height: 6px; 
+            background-color: #222; 
+            border-radius: 3px; 
+            margin-bottom: 15px; 
+            overflow: hidden; 
+        }
+
+        #progress { 
+            height: 100%; 
+            width: 0%; 
+            background-color: #ffffff; 
+            transition: width 0.1s linear; 
+        }
+
+        .host-controls button { 
+            padding: 8px 12px; 
+            font-size: 0.9rem; 
+            margin: 2px; 
+        }
 
         /* VIDEO SYSTEM */
         #video-container {
-            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-            background: #000; position: absolute; top: 0; left: 0; z-index: 1;
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: #000; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1;
         }
-        #host-video { width: 100%; height: 100%; object-fit: contain; }
-        #no-signal { position: absolute; color: #555; font-size: 2.5rem; letter-spacing: 5px; animation: blink 2s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        #host-video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+        }
+
+        #no-signal { 
+            position: absolute; 
+            color: #555; 
+            font-size: 2.5rem; 
+            letter-spacing: 5px; 
+            animation: blink 2s infinite; 
+        }
+
+        @keyframes blink { 
+            0%, 100% { opacity: 1; } 
+            50% { opacity: 0.5; } 
+        }
 
         #camera-switcher {
-            position: absolute; bottom: 20px; right: 20px; z-index: 10;
-            display: flex; flex-direction: column; align-items: flex-end;
-            background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 1px solid #333;
+            position: absolute; 
+            bottom: 20px; 
+            right: 20px; 
+            z-index: 10;
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end;
+            background: rgba(0,0,0,0.8); 
+            padding: 15px; 
+            border-radius: 10px; 
+            border: 1px solid #333;
         }
-        .cam-btn { background-color: #111; color: #aaa; border: 1px solid #333; margin: 5px 0; display: none; width: 200px; text-align: right; }
-        .cam-btn.active-cam { background-color: #fff; color: #000; font-weight: bold; border-color: #fff; }
+
+        .cam-btn { 
+            background-color: #111; 
+            color: #aaa; 
+            border: 1px solid #333; 
+            margin: 5px 0; 
+            display: none; 
+            width: 200px; 
+            text-align: right; 
+        }
+
+        .cam-btn.active-cam { 
+            background-color: #fff; 
+            color: #000; 
+            font-weight: bold; 
+            border-color: #fff; 
+        }
 
         /* PHONE MECHANIC */
         #phone-container {
-            position: absolute; top: 30px; right: 30px; z-index: 20; display: none;
-            flex-direction: column; align-items: center;
+            position: absolute; 
+            top: 30px; 
+            right: 30px; 
+            z-index: 20; 
+            display: none;
+            flex-direction: column; 
+            align-items: center;
             animation: phoneShake 0.5s infinite;
         }
+
         @keyframes phoneShake { 
-            0% {transform: rotate(0deg);} 
-            25% {transform: rotate(-10deg);} 
-            50% {transform: rotate(0deg);} 
-            75% {transform: rotate(10deg);} 
-            100% {transform: rotate(0deg);} 
+            0% { transform: rotate(0deg); } 
+            25% { transform: rotate(-10deg); } 
+            50% { transform: rotate(0deg); } 
+            75% { transform: rotate(10deg); } 
+            100% { transform: rotate(0deg); } 
         }
         
         #phone-btn {
-            background-color: #550000; border: 3px solid #ff0000; color: white;
-            font-size: 1.5rem; padding: 20px 40px; border-radius: 10px; cursor: pointer;
-            position: relative; overflow: hidden; box-shadow: 0 0 20px red;
+            background-color: #550000; 
+            border: 3px solid #ff0000; 
+            color: white;
+            font-size: 1.5rem; 
+            padding: 20px 40px; 
+            border-radius: 10px; 
+            cursor: pointer;
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: 0 0 20px red;
+        }
+
+        #phone-btn::after {
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            height: 100%; 
+            width: 0%;
+            background-color: #ff0000; 
+            z-index: -1;
+        }
+
+        #phone-btn.holding::after { 
+            width: 100%; 
+            transition: width 3s linear; 
+        }
+
+        /* SANITY BAR */
+        #sanity-container {
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.85); 
+            padding: 15px; 
+            border-radius: 10px;
+            border: 1px solid #444; 
+            display: none; 
+            flex-direction: column; 
+            align-items: flex-start;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8); 
+            width: 200px;
+        }
+
+        #sanity-title { 
+            font-size: 1rem; 
+            color: #888; 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+        }
+
+        #sanity-bar { 
+            height: 100%; 
+            width: 100%; 
+            background-color: #00ffcc; 
+            transition: background-color 0.3s; 
         }
         
-        /* The filling progress bar for holding */
-        #phone-btn::after {
-            content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 0%;
-            background-color: #ff0000; z-index: -1;
+        #danger-vignette {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            box-shadow: inset 0 0 150px rgba(255, 0, 0, 0.8); 
+            z-index: 5;
+            pointer-events: none; 
+            display: none; 
+            animation: flashWarning 1s infinite;
         }
-        #phone-btn.holding::after {
-            width: 100%; transition: width 3s linear; /* 3 seconds to fill */
+
+        @keyframes flashWarning { 
+            0%, 100% { opacity: 0.2; } 
+            50% { opacity: 1; } 
         }
 
         /* PLAYER VIEW */
-        #player-view { background-color: black; color: white; }
-        .status-text { font-size: 1.5rem; margin-bottom: 10px; color: #888; max-width: 90%; }
-        .timer-text { font-size: 4rem; margin-bottom: 30px; color: #fff; }
-        .action-btn { background-color: #aa0000; border-color: #ff0000; font-size: 1.5rem; font-weight: bold; display: none; }
-        .action-btn:hover { background-color: #ff0000; }
-        #btn-caught { background-color: #0044aa; border-color: #0088ff; }
+        #player-view { 
+            background-color: black; 
+            color: white; 
+        }
+
+        .status-text { 
+            font-size: 1.5rem; 
+            margin-bottom: 10px; 
+            color: #888; 
+            max-width: 90%; 
+        }
+
+        .timer-text { 
+            font-size: 4rem; 
+            margin-bottom: 30px; 
+            color: #fff; 
+        }
+
+        .action-btn { 
+            background-color: #aa0000; 
+            border-color: #ff0000; 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            display: none; 
+        }
+
+        .action-btn:hover { 
+            background-color: #ff0000; 
+        }
+
+        #btn-caught { 
+            background-color: #0044aa; 
+            border-color: #0088ff; 
+        }
 
         /* CAMERA CLIENT VIEW */
-        #camera-client-view { background-color: #111; }
-        #local-video { width: 90%; max-width: 400px; border: 2px solid #555; border-radius: 10px; margin-bottom: 20px; transform: scaleX(-1); }
-        .recording-dot { color: red; animation: blink 1s infinite; font-size: 1.5rem; vertical-align: middle; }
+        #camera-client-view { 
+            background-color: #111; 
+        }
+
+        #local-video { 
+            width: 90%; 
+            max-width: 400px; 
+            border: 2px solid #555; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+            transform: scaleX(-1); 
+        }
+
+        .recording-dot { 
+            color: red; 
+            animation: blink 1s infinite; 
+            font-size: 1.5rem; 
+            vertical-align: middle; 
+        }
     </style>
 </head>
 <body>
@@ -185,6 +407,10 @@
 
     <!-- HOST VIEW -->
     <div id="host-view" class="view">
+        
+        <!-- Red screen effect for 0 Sanity -->
+        <div id="danger-vignette"></div>
+
         <div id="video-container">
             <div id="no-signal">NO SIGNAL</div>
             <video id="host-video" autoplay playsinline muted></video>
@@ -194,7 +420,9 @@
             <h3>Room: <span id="room-code-display">----</span></h3>
             <p id="connections-display" style="margin:5px 0; font-size:0.8rem;">Players: 0</p>
             <div id="clock">12:00 AM</div>
-            <div class="progress-bar-container"><div id="progress"></div></div>
+            <div class="progress-bar-container">
+                <div id="progress"></div>
+            </div>
             <div class="host-controls">
                 <button onclick="startTimer()">Start</button>
                 <button onclick="pauseTimer()">Pause</button>
@@ -206,6 +434,14 @@
         <div id="phone-container">
             <div style="color:red; font-weight:bold; margin-bottom:5px; font-size:1.2rem;">RING RING!</div>
             <button id="phone-btn">☎️ ANSWER (HOLD)</button>
+        </div>
+
+        <!-- SANITY UI -->
+        <div id="sanity-container">
+            <div id="sanity-title">SANITY</div>
+            <div class="progress-bar-container" style="margin-bottom: 0;">
+                <div id="sanity-bar"></div>
+            </div>
         </div>
 
         <div id="camera-switcher">
@@ -244,17 +480,19 @@
     <script>
         // --- GLOBAL VARIABLES ---
         const PREFIX = 'fnaf-timer-';
+        
         let peer = null;
         let connections = [];
         let mediaCalls = {}; 
         
-        // Host Variables
+        // Host Timer Variables
         const TOTAL_MS = 8 * 60 * 1000; 
         let hostStartTime = null;
         let hostAccumulatedTime = 0;
         let hostIsRunning = false;
         let currentInGameHour = 0;
         let currentElapsedMinutes = 0;
+        let hostLastFrameTime = 0;
         let hostAnimationFrame;
 
         // Camera Variables
@@ -274,6 +512,10 @@
         let audioCtx;
         let ringIntervalObj;
 
+        // Sanity Variables (Host)
+        let hostSanity = 100.0;
+        let lastInteractionTime = 0;
+
         // Client Variables
         let clientRole = '';
         let clientConn = null;
@@ -285,12 +527,17 @@
         let pLastTick = 0;
         let pAnimationFrame;
         let pSyncElapsedTime = 0;
-        let timeMultiplier = 1.0; // 1.0 normal, 1.3333 when phone ringing
+        let timeMultiplier = 1.0; 
         let wakeLock = null;
 
         // Navigation Functions
         function showView(id) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
+            let allViews = document.querySelectorAll('.view');
+            
+            allViews.forEach(function(v) {
+                v.classList.remove('active-view');
+            });
+            
             document.getElementById(id).classList.add('active-view');
         }
 
@@ -303,55 +550,73 @@
             document.getElementById('join-status').innerText = ''; 
         }
 
+        // --- MOUSE/KEYBOARD TRACKING FOR SANITY ---
+        window.addEventListener('mousemove', function() { 
+            if (hostIsRunning) {
+                lastInteractionTime = Date.now(); 
+            }
+        });
+
+        window.addEventListener('keydown', function() { 
+            if (hostIsRunning) {
+                lastInteractionTime = Date.now(); 
+            }
+        });
+
         // ==========================================
         //               HOST LOGIC
         // ==========================================
         function setupHost() {
             showView('host-view');
+            
             const pin = Math.floor(1000 + Math.random() * 9000).toString();
             document.getElementById('room-code-display').innerText = pin;
             
             peer = new Peer(PREFIX + pin);
             
-            peer.on('connection', (conn) => {
+            peer.on('connection', function(conn) {
                 connections.push(conn);
                 updateConnectionCount();
                 
-                conn.on('data', (data) => {
+                conn.on('data', function(data) {
                     if (data.type === 'hello') {
                         if (data.role === 'intruder') {
                             hasIntruder = true;
+                            document.getElementById('sanity-container').style.display = 'flex';
                         }
                     }
                 });
 
-                conn.on('open', () => {
+                conn.on('open', function() {
                     broadcastSync();
                 });
-
-                conn.on('close', () => {
-                    connections = connections.filter(c => c !== conn);
+                
+                conn.on('close', function() {
+                    connections = connections.filter(function(c) {
+                        return c !== conn;
+                    });
                     updateConnectionCount();
                 });
             });
 
-            peer.on('call', (call) => {
+            peer.on('call', function(call) {
                 let room = call.metadata.room;
                 call.answer(); 
                 
-                call.on('stream', (remoteStream) => {
+                call.on('stream', function(remoteStream) {
                     cameraStreams[room] = remoteStream;
                     document.getElementById('cam-btn-' + room).style.display = 'block';
                     
-                    if(!activeCamera || cameraStreams[activeCamera] == null) {
+                    if (!activeCamera || cameraStreams[activeCamera] == null) {
                         switchCamera(room);
                     }
                 });
                 
-                call.on('close', () => {
+                call.on('close', function() {
                     cameraStreams[room] = null;
                     document.getElementById('cam-btn-' + room).style.display = 'none';
-                    if(activeCamera === room) {
+                    
+                    if (activeCamera === room) {
                         document.getElementById('host-video').srcObject = null;
                         document.getElementById('no-signal').style.display = 'block';
                     }
@@ -360,7 +625,6 @@
                 mediaCalls[room] = call;
             });
 
-            // Set up Phone check interval
             phoneCheckInterval = setInterval(checkPhoneTrigger, 5000);
             setupPhoneButton();
         }
@@ -371,11 +635,12 @@
 
         function broadcastSync(isReset = false) {
             let timePassed = hostAccumulatedTime;
+            
             if (hostIsRunning) {
                 timePassed += (Date.now() - hostStartTime);
             }
 
-            connections.forEach(conn => {
+            connections.forEach(function(conn) {
                 conn.send({ 
                     type: isReset ? 'reset' : 'sync', 
                     isRunning: hostIsRunning, 
@@ -388,6 +653,9 @@
 
         function updateHostDisplay() {
             let now = Date.now();
+            let dt = (now - hostLastFrameTime) / 1000.0;
+            hostLastFrameTime = now;
+
             let timePassed = hostAccumulatedTime;
             
             if (hostIsRunning) {
@@ -397,15 +665,18 @@
             if (timePassed >= TOTAL_MS) {
                 timePassed = TOTAL_MS; 
                 hostIsRunning = false;
+                
                 document.getElementById('clock').classList.add('win');
                 document.getElementById('clock').innerText = "6:00 AM";
                 document.getElementById('progress').style.width = "100%";
+                
                 stopPhoneRinging(); 
                 broadcastSync(); 
                 cancelAnimationFrame(hostAnimationFrame);
                 return;
             }
 
+            // Update Time UI
             let fraction = timePassed / TOTAL_MS;
             let gameMinutesPassed = Math.floor(fraction * 360);
             let newHour = Math.floor(gameMinutesPassed / 60);
@@ -420,8 +691,52 @@
 
             let displayHour = newHour === 0 ? 12 : newHour;
             let displayMinute = minute < 10 ? '0' + minute : minute;
+            
             document.getElementById('clock').innerText = `${displayHour}:${displayMinute} AM`;
             document.getElementById('progress').style.width = `${fraction * 100}%`;
+
+            // --- SANITY LOGIC ---
+            if (hasIntruder) {
+                let timeSinceInteraction = now - lastInteractionTime;
+                let isRecovering = false;
+                
+                if (timeSinceInteraction < 500) {
+                    isRecovering = true;
+                }
+
+                if (isRecovering) {
+                    hostSanity += 2.0 * dt;
+                } else {
+                    let drainRate = 1.0 + (currentInGameHour * 0.25);
+                    hostSanity -= drainRate * dt;
+                }
+
+                if (hostSanity < 0) {
+                    hostSanity = 0;
+                }
+                
+                if (hostSanity > 100) {
+                    hostSanity = 100;
+                }
+                
+                let sanityBar = document.getElementById('sanity-bar');
+                sanityBar.style.width = hostSanity + '%';
+
+                if (hostSanity > 50) {
+                    sanityBar.style.backgroundColor = '#00ffcc';
+                    document.getElementById('danger-vignette').style.display = 'none';
+                } else if (hostSanity > 20) {
+                    sanityBar.style.backgroundColor = '#ffcc00';
+                    document.getElementById('danger-vignette').style.display = 'none';
+                } else {
+                    sanityBar.style.backgroundColor = '#ff0000';
+                    if (hostSanity <= 0) {
+                        document.getElementById('danger-vignette').style.display = 'block';
+                    } else {
+                        document.getElementById('danger-vignette').style.display = 'none';
+                    }
+                }
+            }
 
             if (hostIsRunning) {
                 hostAnimationFrame = requestAnimationFrame(updateHostDisplay);
@@ -433,16 +748,19 @@
                 if (hostAccumulatedTime >= TOTAL_MS) {
                     resetTimer();
                 }
+                
                 document.getElementById('clock').classList.remove('win');
                 hostIsRunning = true; 
                 hostStartTime = Date.now();
+                hostLastFrameTime = Date.now();
+                
                 broadcastSync(); 
                 hostAnimationFrame = requestAnimationFrame(updateHostDisplay);
                 
-                // Initialize Audio context on first user interaction
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
+                
                 if (audioCtx.state === 'suspended') {
                     audioCtx.resume();
                 }
@@ -453,6 +771,7 @@
             if (hostIsRunning) {
                 hostIsRunning = false; 
                 hostAccumulatedTime += Date.now() - hostStartTime;
+                
                 stopPhoneRinging();
                 broadcastSync(); 
                 cancelAnimationFrame(hostAnimationFrame);
@@ -464,21 +783,33 @@
             hostAccumulatedTime = 0; 
             currentInGameHour = 0; 
             currentElapsedMinutes = 0;
+            hostSanity = 100.0;
             hostStartTime = null; 
+            
             cancelAnimationFrame(hostAnimationFrame);
+            
             document.getElementById('clock').classList.remove('win');
             document.getElementById('clock').innerText = "12:00 AM"; 
             document.getElementById('progress').style.width = "0%";
+            document.getElementById('sanity-bar').style.width = "100%";
+            document.getElementById('danger-vignette').style.display = "none";
+            
             stopPhoneRinging(); 
             broadcastSync(true);
         }
 
         function switchCamera(room) {
-            document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active-cam'));
+            let allCamBtns = document.querySelectorAll('.cam-btn');
+            
+            allCamBtns.forEach(function(b) {
+                b.classList.remove('active-cam');
+            });
+            
             document.getElementById('cam-btn-' + room).classList.add('active-cam');
             activeCamera = room;
             
             const vid = document.getElementById('host-video');
+            
             if (cameraStreams[room]) { 
                 vid.srcObject = cameraStreams[room]; 
                 document.getElementById('no-signal').style.display = 'none'; 
@@ -491,8 +822,9 @@
         // --- PHONE LOGIC (HOST) ---
         function checkPhoneTrigger() {
             if (hostIsRunning && hasIntruder && !isPhoneRinging) {
-                // 1 in 7 chance every 5 seconds
-                if (Math.random() < (1/7)) {
+                let randomChance = Math.random();
+                
+                if (randomChance < (1/7)) {
                     startPhoneRinging();
                 }
             }
@@ -503,10 +835,11 @@
             document.getElementById('phone-container').style.display = 'flex';
             broadcastSync();
             
-            // Play Beep Sound every 2 seconds while ringing
             if (audioCtx) {
-                const playBeep = () => {
-                    if (!isPhoneRinging) return;
+                const playBeep = function() {
+                    if (!isPhoneRinging) {
+                        return;
+                    }
                     
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
@@ -541,18 +874,17 @@
         function setupPhoneButton() {
             const btn = document.getElementById('phone-btn');
             
-            const startHold = (e) => {
+            const startHold = function(e) {
                 e.preventDefault();
                 btn.classList.add('holding');
                 
-                // If held for 3 seconds, hang up
-                holdTimer = setTimeout(() => { 
+                holdTimer = setTimeout(function() { 
                     stopPhoneRinging(); 
                     btn.classList.remove('holding'); 
                 }, 3000);
             };
             
-            const cancelHold = (e) => { 
+            const cancelHold = function(e) { 
                 e.preventDefault(); 
                 clearTimeout(holdTimer); 
                 btn.classList.remove('holding'); 
@@ -571,6 +903,7 @@
         // ==========================================
         function joinGame(role) {
             const pin = document.getElementById('room-input').value;
+            
             if (pin.length !== 4) {
                 document.getElementById('join-status').innerText = "Enter 4-digit code.";
                 return;
@@ -579,13 +912,11 @@
             document.getElementById('join-status').innerText = "Connecting...";
             peer = new Peer(); 
             
-            peer.on('open', () => {
+            peer.on('open', function() {
                 clientConn = peer.connect(PREFIX + pin);
                 
-                clientConn.on('open', () => {
+                clientConn.on('open', function() {
                     clientRole = role;
-                    
-                    // Tell host who we are
                     clientConn.send({ type: 'hello', role: clientRole }); 
                     
                     document.getElementById('player-role-display').innerText = `ROLE: ${clientRole.toUpperCase()}`;
@@ -593,14 +924,14 @@
                     showView('player-view');
                 });
                 
-                clientConn.on('data', (data) => {
+                clientConn.on('data', function(data) {
                     if (data.type === 'sync') {
                         currentInGameHour = data.hour; 
                         pSyncElapsedTime = data.elapsedTime;
                         
-                        if(clientRole === 'intruder') {
+                        if (clientRole === 'intruder') {
                             if (data.phoneRinging) {
-                                timeMultiplier = 1.3333; // 1 second decreases by 1.3333 seconds (Takes 0.75s real time)
+                                timeMultiplier = 1.3333; 
                                 document.getElementById('phone-alert').style.display = 'block';
                             } else {
                                 timeMultiplier = 1.0;
@@ -609,12 +940,13 @@
                         }
                         
                         setClientRunningState(data.isRunning);
+                        
                     } else if (data.type === 'reset') {
                         resetClientState();
                     }
                 });
                 
-                clientConn.on('error', () => {
+                clientConn.on('error', function() {
                     document.getElementById('join-status').innerText = "Failed to connect.";
                 });
             });
@@ -623,28 +955,34 @@
         function getCooldown() {
             if (clientRole === 'bonnie') {
                 if (pMovesCompleted < 2) {
-                    return Math.max(0, 20 - (currentInGameHour * 2.5)) * 1000;
+                    let base = 20 - (currentInGameHour * 2.5);
+                    return Math.max(0, base) * 1000;
                 } else {
-                    return Math.max(0, 5 - (currentInGameHour * 0.25)) * 1000;
+                    let base = 5 - (currentInGameHour * 0.25);
+                    return Math.max(0, base) * 1000;
                 }
             }
             
             if (clientRole === 'freddy') {
                 if (pMovesCompleted < 2) {
-                    return Math.max(0, 30 - (currentInGameHour * 5)) * 1000;
+                    let base = 30 - (currentInGameHour * 5);
+                    return Math.max(0, base) * 1000;
                 } else {
-                    return 5000; // Attack is always flat 5s
+                    return 5000; 
                 }
             }
             
             if (clientRole === 'intruder') {
                 if (pMovesCompleted === 4) {
-                    return 10000; // Opening closet is flat 10s
+                    return 10000; 
                 }
                 
                 let minsPassed = Math.floor(pSyncElapsedTime / 60000);
-                return Math.max(0, 55 - (minsPassed * 5)) * 1000;
+                let base = 55 - (minsPassed * 5);
+                return Math.max(0, base) * 1000;
             }
+            
+            return 0;
         }
 
         function resetClientState() {
@@ -660,6 +998,7 @@
             
             document.getElementById('player-status').innerText = "Waiting for Host..."; 
             document.getElementById('player-timer').innerText = "--:--";
+            
             cancelAnimationFrame(pAnimationFrame);
         }
 
@@ -676,7 +1015,9 @@
         }
 
         function clientLoop() {
-            if (!pIsRunning) return;
+            if (!pIsRunning) {
+                return;
+            }
             
             let now = Date.now();
             let delta = now - pLastTick;
@@ -684,8 +1025,8 @@
             pSyncElapsedTime += delta; 
 
             if (!pWaitingForInput) {
-                // Multiply the time subtracted if phone is ringing
-                pTimeLeft -= (delta * timeMultiplier); 
+                let timeLost = delta * timeMultiplier;
+                pTimeLeft -= timeLost; 
                 
                 if (pTimeLeft <= 0) { 
                     pTimeLeft = 0; 
@@ -702,7 +1043,9 @@
         }
 
         function updateClientText() {
-            if (pWaitingForInput) return;
+            if (pWaitingForInput) {
+                return;
+            }
             
             let secs = Math.ceil(pTimeLeft / 1000);
             document.getElementById('player-timer').innerText = secs + "s";
@@ -715,7 +1058,14 @@
                     "Moving to Closet...", 
                     "Opening Closet (Hold Position)..."
                 ];
-                document.getElementById('player-status').innerText = paths[pMovesCompleted] || "Resetting...";
+                
+                let message = paths[pMovesCompleted];
+                if (!message) {
+                    message = "Resetting...";
+                }
+                
+                document.getElementById('player-status').innerText = message;
+                
             } else {
                 if (pMovesCompleted < 2) {
                     document.getElementById('player-status').innerText = `Preparing to move (${pMovesCompleted}/2)...`;
@@ -770,7 +1120,7 @@
             
             if (clientRole === 'intruder') {
                 if (pMovesCompleted > 5) {
-                    pMovesCompleted = 0; 
+                    pMovesCompleted = 0;
                 }
             }
             
@@ -782,16 +1132,16 @@
         }
 
         function confirmAttack() { 
-            pMovesCompleted = 0; // Reset Animatronic cycle
+            pMovesCompleted = 0; 
             pWaitingForInput = false; 
             hideActionButtons(); 
             pTimeLeft = getCooldown(); 
             pLastTick = Date.now(); 
-            updateClientText();
+            updateClientText(); 
         }
 
         function confirmCaught() { 
-            pMovesCompleted = 0; // Reset Animatronic cycle
+            pMovesCompleted = 0; 
             pWaitingForInput = false; 
             hideActionButtons(); 
             pTimeLeft = getCooldown(); 
@@ -813,7 +1163,6 @@
 
             document.getElementById('join-status').innerText = "Accessing Camera...";
 
-            // Keep screen awake (WakeLock API)
             try { 
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen'); 
@@ -823,7 +1172,6 @@
             }
 
             try {
-                // Stabilized lower resolution to prevent phone thermal-throttling/freezing
                 localMediaStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         facingMode: "environment", 
@@ -833,13 +1181,13 @@
                     audio: false 
                 });
             } catch (err) { 
-                document.getElementById('join-status').innerText = "Camera permission denied!";
+                document.getElementById('join-status').innerText = "Camera permission denied!"; 
                 return; 
             }
 
             peer = new Peer();
             
-            peer.on('open', () => {
+            peer.on('open', function() {
                 document.getElementById('join-status').innerText = "Calling Host...";
                 
                 let call = peer.call(PREFIX + pin, localMediaStream, { metadata: { room: roomSelection } });
@@ -848,16 +1196,16 @@
                 document.getElementById('cam-client-title').innerText = roomSelection.toUpperCase();
                 document.getElementById('local-video').srcObject = localMediaStream;
 
-                // Open data channel to stay connected and send keep-alive pings
                 let camDataConn = peer.connect(PREFIX + pin);
-                setInterval(() => { 
+                
+                setInterval(function() { 
                     if (camDataConn && camDataConn.open) {
                         camDataConn.send({ type: 'ping' }); 
                     }
                 }, 3000);
             });
             
-            peer.on('error', () => { 
+            peer.on('error', function() { 
                 document.getElementById('join-status').innerText = "Failed to connect. Is Host open?"; 
             });
         }
