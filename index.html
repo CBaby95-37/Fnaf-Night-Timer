@@ -3,16 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Night Shift Multiplayer - Cameras & Intruder</title>
-    <!-- PeerJS for Free WebRTC Multi-device connection & Video Streaming -->
+    <title>Night Shift - Cameras, Intruder & Phone</title>
+    <!-- PeerJS for Free WebRTC Multi-device connection -->
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
         body {
-            background-color: #0a0a0a; color: #ffffff; font-family: 'Share Tech Mono', monospace;
-            margin: 0; display: flex; flex-direction: column; align-items: center;
-            justify-content: center; min-height: 100vh; overflow: hidden; text-align: center;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            text-align: center;
+            user-select: none; /* Prevents text highlighting when holding the phone button */
         }
 
         .view { display: none; width: 100%; height: 100%; box-sizing: border-box; }
@@ -20,34 +29,58 @@
 
         /* General UI */
         h1, h2, h3 { margin-top: 0; text-transform: uppercase; }
+        
         button {
-            background-color: #222; color: white; border: 2px solid #555;
-            padding: 12px 18px; margin: 8px; font-family: 'Share Tech Mono', monospace;
-            font-size: 1.1rem; cursor: pointer; border-radius: 8px; transition: 0.2s;
+            background-color: #222;
+            color: white;
+            border: 2px solid #555;
+            padding: 12px 18px;
+            margin: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.2s;
         }
         button:hover { background-color: #444; border-color: #888; }
         button:active { background-color: #111; }
+        
         input, select {
-            padding: 12px; font-size: 1.2rem; text-align: center; width: 220px;
-            font-family: 'Share Tech Mono', monospace; background: #111; color: white;
-            border: 2px solid #555; border-radius: 8px; margin-bottom: 20px;
+            padding: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            width: 220px;
+            font-family: 'Share Tech Mono', monospace;
+            background: #111;
+            color: white;
+            border: 2px solid #555;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
 
-        /* HOST VIEW SPECIFIC (Fixed layout) */
+        /* HOST VIEW SPECIFIC */
         #host-view { 
-            position: fixed; /* Locks it to the screen bounds */
-            top: 0; left: 0; width: 100vw; height: 100vh; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100vw; height: 100vh; 
             background-color: #050505; 
         }
         
-        #host-view.active-view { display: block; /* Overrides the flex centering */ }
+        #host-view.active-view { display: block; }
         
         #timer-overlay {
-            position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.85);
-            padding: 20px; border-radius: 10px; border: 1px solid #444;
-            z-index: 10; text-align: left; min-width: 200px;
+            position: absolute;
+            top: 20px; left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            z-index: 10;
+            text-align: left;
+            min-width: 200px;
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
+        
         #timer-overlay h3 { margin: 0 0 5px 0; font-size: 1rem; color: #888; }
         #room-code-display { color: #ffeb3b; font-size: 1.5rem; letter-spacing: 3px; margin-bottom: 10px; }
         #clock { font-size: 3rem; margin: 5px 0; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
@@ -55,7 +88,6 @@
         
         .progress-bar-container { width: 100%; height: 6px; background-color: #222; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
         #progress { height: 100%; width: 0%; background-color: #ffffff; transition: width 0.1s linear; }
-
         .host-controls button { padding: 8px 12px; font-size: 0.9rem; margin: 2px; }
 
         /* VIDEO SYSTEM */
@@ -65,7 +97,6 @@
         }
         #host-video { width: 100%; height: 100%; object-fit: contain; }
         #no-signal { position: absolute; color: #555; font-size: 2.5rem; letter-spacing: 5px; animation: blink 2s infinite; }
-        
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         #camera-switcher {
@@ -76,7 +107,36 @@
         .cam-btn { background-color: #111; color: #aaa; border: 1px solid #333; margin: 5px 0; display: none; width: 200px; text-align: right; }
         .cam-btn.active-cam { background-color: #fff; color: #000; font-weight: bold; border-color: #fff; }
 
-        /* PLAYER VIEW (Animatronic / Intruder) */
+        /* PHONE MECHANIC */
+        #phone-container {
+            position: absolute; top: 30px; right: 30px; z-index: 20; display: none;
+            flex-direction: column; align-items: center;
+            animation: phoneShake 0.5s infinite;
+        }
+        @keyframes phoneShake { 
+            0% {transform: rotate(0deg);} 
+            25% {transform: rotate(-10deg);} 
+            50% {transform: rotate(0deg);} 
+            75% {transform: rotate(10deg);} 
+            100% {transform: rotate(0deg);} 
+        }
+        
+        #phone-btn {
+            background-color: #550000; border: 3px solid #ff0000; color: white;
+            font-size: 1.5rem; padding: 20px 40px; border-radius: 10px; cursor: pointer;
+            position: relative; overflow: hidden; box-shadow: 0 0 20px red;
+        }
+        
+        /* The filling progress bar for holding */
+        #phone-btn::after {
+            content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 0%;
+            background-color: #ff0000; z-index: -1;
+        }
+        #phone-btn.holding::after {
+            width: 100%; transition: width 3s linear; /* 3 seconds to fill */
+        }
+
+        /* PLAYER VIEW */
         #player-view { background-color: black; color: white; }
         .status-text { font-size: 1.5rem; margin-bottom: 10px; color: #888; max-width: 90%; }
         .timer-text { font-size: 4rem; margin-bottom: 30px; color: #fff; }
@@ -88,7 +148,6 @@
         #camera-client-view { background-color: #111; }
         #local-video { width: 90%; max-width: 400px; border: 2px solid #555; border-radius: 10px; margin-bottom: 20px; transform: scaleX(-1); }
         .recording-dot { color: red; animation: blink 1s infinite; font-size: 1.5rem; vertical-align: middle; }
-
     </style>
 </head>
 <body>
@@ -120,14 +179,12 @@
             <option value="Hallway">Hallway</option>
         </select>
         <button onclick="joinCamera()" style="background:#0044aa; border-color:#0088ff;">Share Camera</button>
-        
         <button onclick="showMenu()" style="margin-top:40px; background:#111; border-color:#333;">Back</button>
         <p id="join-status" style="color: #aaa;"></p>
     </div>
 
     <!-- HOST VIEW -->
     <div id="host-view" class="view">
-        
         <div id="video-container">
             <div id="no-signal">NO SIGNAL</div>
             <video id="host-video" autoplay playsinline muted></video>
@@ -145,6 +202,12 @@
             </div>
         </div>
 
+        <!-- PHONE UI -->
+        <div id="phone-container">
+            <div style="color:red; font-weight:bold; margin-bottom:5px; font-size:1.2rem;">RING RING!</div>
+            <button id="phone-btn">☎️ ANSWER (HOLD)</button>
+        </div>
+
         <div id="camera-switcher">
             <div style="margin-bottom: 10px; font-size:1.1rem; color:#aaa; font-weight:bold;">CAMERAS</div>
             <button class="cam-btn" id="cam-btn-Living Room" onclick="switchCamera('Living Room')">LIVING ROOM</button>
@@ -154,10 +217,15 @@
         </div>
     </div>
 
-    <!-- PLAYER VIEW (Animatronics / Intruder) -->
+    <!-- PLAYER VIEW -->
     <div id="player-view" class="view">
         <div class="status-text" id="player-role-display" style="color:#555;">ROLE</div>
-        <div class="status-text" id="player-status">Waiting for host to start...</div>
+        <div class="status-text" id="player-status">Waiting for host...</div>
+        
+        <div id="phone-alert" style="color:red; font-weight:bold; display:none; margin-bottom:10px;">
+            PHONE RINGING - TIMER SPED UP!
+        </div>
+        
         <div class="timer-text" id="player-timer">--:--</div>
         
         <button class="action-btn" id="btn-move" onclick="confirmMove()">CONFIRM MOVE</button>
@@ -165,7 +233,7 @@
         <button class="action-btn" id="btn-caught" onclick="confirmCaught()">GOT CAUGHT</button>
     </div>
 
-    <!-- CAMERA CLIENT VIEW -->
+    <!-- CAMERA VIEW -->
     <div id="camera-client-view" class="view">
         <h2 id="cam-client-title">Camera Feed</h2>
         <video id="local-video" autoplay playsinline muted></video>
@@ -180,7 +248,7 @@
         let connections = [];
         let mediaCalls = {}; 
         
-        // Host Timer Vars
+        // Host Variables
         const TOTAL_MS = 8 * 60 * 1000; 
         let hostStartTime = null;
         let hostAccumulatedTime = 0;
@@ -189,29 +257,51 @@
         let currentElapsedMinutes = 0;
         let hostAnimationFrame;
 
-        // Camera System Vars
-        let cameraStreams = { 'Living Room': null, 'Kitchen': null, 'Laundry Room': null, 'Hallway': null };
+        // Camera Variables
+        let cameraStreams = { 
+            'Living Room': null, 
+            'Kitchen': null, 
+            'Laundry Room': null, 
+            'Hallway': null 
+        };
         let activeCamera = null;
 
-        // Client Vars
-        let clientRole = ''; 
+        // Phone Variables (Host)
+        let hasIntruder = false;
+        let isPhoneRinging = false;
+        let phoneCheckInterval;
+        let holdTimer = null;
+        let audioCtx;
+        let ringIntervalObj;
+
+        // Client Variables
+        let clientRole = '';
         let clientConn = null;
         let localMediaStream = null;
         let pIsRunning = false;
-        let pMovesCompleted = 0; 
+        let pMovesCompleted = 0;
         let pTimeLeft = 0;
         let pWaitingForInput = false;
         let pLastTick = 0;
         let pAnimationFrame;
-        let pSyncElapsedTime = 0; // Tracks elapsed real-time for intruder math
+        let pSyncElapsedTime = 0;
+        let timeMultiplier = 1.0; // 1.0 normal, 1.3333 when phone ringing
+        let wakeLock = null;
 
-        // --- NAVIGATION ---
+        // Navigation Functions
         function showView(id) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active-view'));
             document.getElementById(id).classList.add('active-view');
         }
-        function showMenu() { showView('menu-view'); }
-        function showJoinMenu() { showView('join-view'); document.getElementById('join-status').innerText = ''; }
+
+        function showMenu() { 
+            showView('menu-view'); 
+        }
+
+        function showJoinMenu() { 
+            showView('join-view'); 
+            document.getElementById('join-status').innerText = ''; 
+        }
 
         // ==========================================
         //               HOST LOGIC
@@ -223,33 +313,41 @@
             
             peer = new Peer(PREFIX + pin);
             
-            // Handle Data Connections (Timers/Sync)
             peer.on('connection', (conn) => {
                 connections.push(conn);
                 updateConnectionCount();
                 
-                conn.on('open', () => broadcastSync());
+                conn.on('data', (data) => {
+                    if (data.type === 'hello') {
+                        if (data.role === 'intruder') {
+                            hasIntruder = true;
+                        }
+                    }
+                });
+
+                conn.on('open', () => {
+                    broadcastSync();
+                });
+
                 conn.on('close', () => {
                     connections = connections.filter(c => c !== conn);
                     updateConnectionCount();
                 });
             });
 
-            // Handle Media Connections (Cameras)
             peer.on('call', (call) => {
                 let room = call.metadata.room;
-                call.answer(); // Answer without sending stream back
+                call.answer(); 
                 
                 call.on('stream', (remoteStream) => {
                     cameraStreams[room] = remoteStream;
                     document.getElementById('cam-btn-' + room).style.display = 'block';
                     
-                    // Auto-switch if no camera currently active
                     if(!activeCamera || cameraStreams[activeCamera] == null) {
                         switchCamera(room);
                     }
                 });
-
+                
                 call.on('close', () => {
                     cameraStreams[room] = null;
                     document.getElementById('cam-btn-' + room).style.display = 'none';
@@ -261,21 +359,10 @@
                 
                 mediaCalls[room] = call;
             });
-        }
 
-        function switchCamera(room) {
-            document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active-cam'));
-            document.getElementById('cam-btn-' + room).classList.add('active-cam');
-            activeCamera = room;
-            
-            const vidElement = document.getElementById('host-video');
-            if (cameraStreams[room]) {
-                vidElement.srcObject = cameraStreams[room];
-                document.getElementById('no-signal').style.display = 'none';
-            } else {
-                vidElement.srcObject = null;
-                document.getElementById('no-signal').style.display = 'block';
-            }
+            // Set up Phone check interval
+            phoneCheckInterval = setInterval(checkPhoneTrigger, 5000);
+            setupPhoneButton();
         }
 
         function updateConnectionCount() {
@@ -283,27 +370,37 @@
         }
 
         function broadcastSync(isReset = false) {
-            let timePassed = hostAccumulatedTime + (hostIsRunning ? (Date.now() - hostStartTime) : 0);
+            let timePassed = hostAccumulatedTime;
+            if (hostIsRunning) {
+                timePassed += (Date.now() - hostStartTime);
+            }
+
             connections.forEach(conn => {
                 conn.send({ 
                     type: isReset ? 'reset' : 'sync', 
                     isRunning: hostIsRunning, 
-                    hour: currentInGameHour,
-                    elapsedTime: timePassed
+                    hour: currentInGameHour, 
+                    elapsedTime: timePassed,
+                    phoneRinging: isPhoneRinging
                 });
             });
         }
 
         function updateHostDisplay() {
             let now = Date.now();
-            let timePassed = hostAccumulatedTime + (hostIsRunning ? (now - hostStartTime) : 0);
+            let timePassed = hostAccumulatedTime;
+            
+            if (hostIsRunning) {
+                timePassed += (now - hostStartTime);
+            }
 
             if (timePassed >= TOTAL_MS) {
-                timePassed = TOTAL_MS;
+                timePassed = TOTAL_MS; 
                 hostIsRunning = false;
                 document.getElementById('clock').classList.add('win');
                 document.getElementById('clock').innerText = "6:00 AM";
                 document.getElementById('progress').style.width = "100%";
+                stopPhoneRinging(); 
                 broadcastSync(); 
                 cancelAnimationFrame(hostAnimationFrame);
                 return;
@@ -311,21 +408,18 @@
 
             let fraction = timePassed / TOTAL_MS;
             let gameMinutesPassed = Math.floor(fraction * 360);
-            
             let newHour = Math.floor(gameMinutesPassed / 60);
             let minute = gameMinutesPassed % 60;
             let newElapsedMins = Math.floor(timePassed / 60000);
 
-            // Sync if hour changes OR real-life minute changes (for intruder math)
             if (newHour !== currentInGameHour || newElapsedMins !== currentElapsedMinutes) {
-                currentInGameHour = newHour;
+                currentInGameHour = newHour; 
                 currentElapsedMinutes = newElapsedMins;
                 broadcastSync(); 
             }
 
             let displayHour = newHour === 0 ? 12 : newHour;
             let displayMinute = minute < 10 ? '0' + minute : minute;
-
             document.getElementById('clock').innerText = `${displayHour}:${displayMinute} AM`;
             document.getElementById('progress').style.width = `${fraction * 100}%`;
 
@@ -336,35 +430,140 @@
 
         function startTimer() {
             if (!hostIsRunning) {
-                if (hostAccumulatedTime >= TOTAL_MS) resetTimer();
+                if (hostAccumulatedTime >= TOTAL_MS) {
+                    resetTimer();
+                }
                 document.getElementById('clock').classList.remove('win');
-                hostIsRunning = true;
+                hostIsRunning = true; 
                 hostStartTime = Date.now();
-                broadcastSync();
+                broadcastSync(); 
                 hostAnimationFrame = requestAnimationFrame(updateHostDisplay);
+                
+                // Initialize Audio context on first user interaction
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
             }
         }
 
         function pauseTimer() {
             if (hostIsRunning) {
-                hostIsRunning = false;
+                hostIsRunning = false; 
                 hostAccumulatedTime += Date.now() - hostStartTime;
-                broadcastSync();
+                stopPhoneRinging();
+                broadcastSync(); 
                 cancelAnimationFrame(hostAnimationFrame);
             }
         }
 
         function resetTimer() {
-            hostIsRunning = false;
-            hostAccumulatedTime = 0;
-            currentInGameHour = 0;
+            hostIsRunning = false; 
+            hostAccumulatedTime = 0; 
+            currentInGameHour = 0; 
             currentElapsedMinutes = 0;
-            hostStartTime = null;
+            hostStartTime = null; 
             cancelAnimationFrame(hostAnimationFrame);
             document.getElementById('clock').classList.remove('win');
-            document.getElementById('clock').innerText = "12:00 AM";
+            document.getElementById('clock').innerText = "12:00 AM"; 
             document.getElementById('progress').style.width = "0%";
+            stopPhoneRinging(); 
             broadcastSync(true);
+        }
+
+        function switchCamera(room) {
+            document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active-cam'));
+            document.getElementById('cam-btn-' + room).classList.add('active-cam');
+            activeCamera = room;
+            
+            const vid = document.getElementById('host-video');
+            if (cameraStreams[room]) { 
+                vid.srcObject = cameraStreams[room]; 
+                document.getElementById('no-signal').style.display = 'none'; 
+            } else { 
+                vid.srcObject = null; 
+                document.getElementById('no-signal').style.display = 'block'; 
+            }
+        }
+
+        // --- PHONE LOGIC (HOST) ---
+        function checkPhoneTrigger() {
+            if (hostIsRunning && hasIntruder && !isPhoneRinging) {
+                // 1 in 7 chance every 5 seconds
+                if (Math.random() < (1/7)) {
+                    startPhoneRinging();
+                }
+            }
+        }
+
+        function startPhoneRinging() {
+            isPhoneRinging = true;
+            document.getElementById('phone-container').style.display = 'flex';
+            broadcastSync();
+            
+            // Play Beep Sound every 2 seconds while ringing
+            if (audioCtx) {
+                const playBeep = () => {
+                    if (!isPhoneRinging) return;
+                    
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    
+                    osc.type = 'square'; 
+                    osc.frequency.value = 600;
+                    
+                    osc.connect(gain); 
+                    gain.connect(audioCtx.destination);
+                    
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + 0.8);
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.9);
+                    
+                    osc.start(audioCtx.currentTime); 
+                    osc.stop(audioCtx.currentTime + 1);
+                };
+                
+                playBeep();
+                ringIntervalObj = setInterval(playBeep, 2000);
+            }
+        }
+
+        function stopPhoneRinging() {
+            isPhoneRinging = false;
+            document.getElementById('phone-container').style.display = 'none';
+            clearInterval(ringIntervalObj);
+            broadcastSync();
+        }
+
+        function setupPhoneButton() {
+            const btn = document.getElementById('phone-btn');
+            
+            const startHold = (e) => {
+                e.preventDefault();
+                btn.classList.add('holding');
+                
+                // If held for 3 seconds, hang up
+                holdTimer = setTimeout(() => { 
+                    stopPhoneRinging(); 
+                    btn.classList.remove('holding'); 
+                }, 3000);
+            };
+            
+            const cancelHold = (e) => { 
+                e.preventDefault(); 
+                clearTimeout(holdTimer); 
+                btn.classList.remove('holding'); 
+            };
+            
+            btn.addEventListener('mousedown', startHold); 
+            btn.addEventListener('touchstart', startHold, {passive: false});
+            
+            btn.addEventListener('mouseup', cancelHold); 
+            btn.addEventListener('mouseleave', cancelHold); 
+            btn.addEventListener('touchend', cancelHold);
         }
 
         // ==========================================
@@ -372,71 +571,106 @@
         // ==========================================
         function joinGame(role) {
             const pin = document.getElementById('room-input').value;
-            if (pin.length !== 4) return (document.getElementById('join-status').innerText = "Enter 4-digit code.");
+            if (pin.length !== 4) {
+                document.getElementById('join-status').innerText = "Enter 4-digit code.";
+                return;
+            }
 
             document.getElementById('join-status').innerText = "Connecting...";
             peer = new Peer(); 
             
             peer.on('open', () => {
                 clientConn = peer.connect(PREFIX + pin);
+                
                 clientConn.on('open', () => {
                     clientRole = role;
+                    
+                    // Tell host who we are
+                    clientConn.send({ type: 'hello', role: clientRole }); 
+                    
                     document.getElementById('player-role-display').innerText = `ROLE: ${clientRole.toUpperCase()}`;
                     resetClientState();
                     showView('player-view');
                 });
-
+                
                 clientConn.on('data', (data) => {
                     if (data.type === 'sync') {
-                        currentInGameHour = data.hour;
+                        currentInGameHour = data.hour; 
                         pSyncElapsedTime = data.elapsedTime;
+                        
+                        if(clientRole === 'intruder') {
+                            if (data.phoneRinging) {
+                                timeMultiplier = 1.3333; // 1 second decreases by 1.3333 seconds (Takes 0.75s real time)
+                                document.getElementById('phone-alert').style.display = 'block';
+                            } else {
+                                timeMultiplier = 1.0;
+                                document.getElementById('phone-alert').style.display = 'none';
+                            }
+                        }
+                        
                         setClientRunningState(data.isRunning);
                     } else if (data.type === 'reset') {
                         resetClientState();
                     }
                 });
-
-                clientConn.on('error', () => document.getElementById('join-status').innerText = "Failed to connect.");
+                
+                clientConn.on('error', () => {
+                    document.getElementById('join-status').innerText = "Failed to connect.";
+                });
             });
         }
 
         function getCooldown() {
-            // Returns milliseconds based on role and progress
             if (clientRole === 'bonnie') {
-                if (pMovesCompleted < 2) return Math.max(0, 20 - (currentInGameHour * 2.5)) * 1000;
-                else return Math.max(0, 5 - (currentInGameHour * 0.25)) * 1000;
-            } 
-            else if (clientRole === 'freddy') {
-                if (pMovesCompleted < 2) return Math.max(0, 30 - (currentInGameHour * 5)) * 1000;
-                else return 5 * 1000; 
+                if (pMovesCompleted < 2) {
+                    return Math.max(0, 20 - (currentInGameHour * 2.5)) * 1000;
+                } else {
+                    return Math.max(0, 5 - (currentInGameHour * 0.25)) * 1000;
+                }
             }
-            else if (clientRole === 'intruder') {
-                if (pMovesCompleted === 4) return 10 * 1000; // Opening closet always 10s
+            
+            if (clientRole === 'freddy') {
+                if (pMovesCompleted < 2) {
+                    return Math.max(0, 30 - (currentInGameHour * 5)) * 1000;
+                } else {
+                    return 5000; // Attack is always flat 5s
+                }
+            }
+            
+            if (clientRole === 'intruder') {
+                if (pMovesCompleted === 4) {
+                    return 10000; // Opening closet is flat 10s
+                }
+                
                 let minsPassed = Math.floor(pSyncElapsedTime / 60000);
                 return Math.max(0, 55 - (minsPassed * 5)) * 1000;
             }
         }
 
         function resetClientState() {
-            pIsRunning = false;
-            pMovesCompleted = 0;
-            pWaitingForInput = false;
-            pSyncElapsedTime = 0;
-            hideActionButtons();
+            pIsRunning = false; 
+            pMovesCompleted = 0; 
+            pWaitingForInput = false; 
+            pSyncElapsedTime = 0; 
+            timeMultiplier = 1.0;
+            
+            hideActionButtons(); 
+            document.getElementById('phone-alert').style.display = 'none';
             pTimeLeft = getCooldown();
-            document.getElementById('player-status').innerText = "Waiting for Host...";
+            
+            document.getElementById('player-status').innerText = "Waiting for Host..."; 
             document.getElementById('player-timer').innerText = "--:--";
             cancelAnimationFrame(pAnimationFrame);
         }
 
         function setClientRunningState(running) {
             if (running && !pIsRunning) {
-                pIsRunning = true;
+                pIsRunning = true; 
                 pLastTick = Date.now();
-                pAnimationFrame = requestAnimationFrame(clientLoop);
+                pAnimationFrame = requestAnimationFrame(clientLoop); 
                 updateClientText();
             } else if (!running && pIsRunning) {
-                pIsRunning = false;
+                pIsRunning = false; 
                 document.getElementById('player-status').innerText = "Game Paused";
             }
         }
@@ -446,28 +680,33 @@
             
             let now = Date.now();
             let delta = now - pLastTick;
-            pLastTick = now;
-            pSyncElapsedTime += delta; // Extrapolate time locally between syncs
+            pLastTick = now; 
+            pSyncElapsedTime += delta; 
 
             if (!pWaitingForInput) {
-                pTimeLeft -= delta;
-                if (pTimeLeft <= 0) {
-                    pTimeLeft = 0;
-                    pWaitingForInput = true;
-                    showActionButtons();
+                // Multiply the time subtracted if phone is ringing
+                pTimeLeft -= (delta * timeMultiplier); 
+                
+                if (pTimeLeft <= 0) { 
+                    pTimeLeft = 0; 
+                    pWaitingForInput = true; 
+                    showActionButtons(); 
                 }
+                
                 updateClientText();
             }
-
-            if (pIsRunning) pAnimationFrame = requestAnimationFrame(clientLoop);
+            
+            if (pIsRunning) {
+                pAnimationFrame = requestAnimationFrame(clientLoop);
+            }
         }
 
         function updateClientText() {
             if (pWaitingForInput) return;
-
+            
             let secs = Math.ceil(pTimeLeft / 1000);
             document.getElementById('player-timer').innerText = secs + "s";
-
+            
             if (clientRole === 'intruder') {
                 const paths = [
                     "Moving to Living Room...", 
@@ -478,72 +717,86 @@
                 ];
                 document.getElementById('player-status').innerText = paths[pMovesCompleted] || "Resetting...";
             } else {
-                if (pMovesCompleted < 2) document.getElementById('player-status').innerText = `Preparing to move (${pMovesCompleted}/2)...`;
-                else document.getElementById('player-status').innerText = `Ready to Attack!`;
+                if (pMovesCompleted < 2) {
+                    document.getElementById('player-status').innerText = `Preparing to move (${pMovesCompleted}/2)...`;
+                } else {
+                    document.getElementById('player-status').innerText = `Ready to Attack!`;
+                }
             }
         }
 
         function showActionButtons() {
-            document.getElementById('player-timer').innerText = "NOW";
+            document.getElementById('player-timer').innerText = "NOW"; 
             hideActionButtons();
+            
+            const btnMove = document.getElementById('btn-move');
+            const btnAttack = document.getElementById('btn-attack');
+            const btnCaught = document.getElementById('btn-caught');
 
             if (clientRole === 'intruder') {
-                if (pMovesCompleted < 4) {
-                    document.getElementById('player-status').innerText = "ARRIVED!";
-                    document.getElementById('btn-move').style.display = 'block';
-                    document.getElementById('btn-move').innerText = "CONFIRM MOVE";
-                } else if (pMovesCompleted === 4) {
-                    document.getElementById('player-status').innerText = "CLOSET REACHED!";
-                    document.getElementById('btn-move').style.display = 'block';
-                    document.getElementById('btn-move').innerText = "OPEN CLOSET";
-                } else {
-                    document.getElementById('player-status').innerText = "TIME TO RESET!";
-                    document.getElementById('btn-move').style.display = 'block';
-                    document.getElementById('btn-move').innerText = "CONFIRM RESET";
+                if (pMovesCompleted < 4) { 
+                    document.getElementById('player-status').innerText = "ARRIVED!"; 
+                    btnMove.style.display = 'block'; 
+                    btnMove.innerText = "CONFIRM MOVE"; 
+                } else if (pMovesCompleted === 4) { 
+                    document.getElementById('player-status').innerText = "CLOSET REACHED!"; 
+                    btnMove.style.display = 'block'; 
+                    btnMove.innerText = "OPEN CLOSET"; 
+                } else { 
+                    document.getElementById('player-status').innerText = "TIME TO RESET!"; 
+                    btnMove.style.display = 'block'; 
+                    btnMove.innerText = "CONFIRM RESET"; 
                 }
             } else {
-                if (pMovesCompleted < 2) {
-                    document.getElementById('player-status').innerText = "TIME TO MOVE!";
-                    document.getElementById('btn-move').style.display = 'block';
-                } else {
-                    document.getElementById('player-status').innerText = "EXECUTE ATTACK!";
-                    document.getElementById('btn-attack').style.display = 'block';
-                    document.getElementById('btn-caught').style.display = 'block';
+                if (pMovesCompleted < 2) { 
+                    document.getElementById('player-status').innerText = "TIME TO MOVE!"; 
+                    btnMove.style.display = 'block'; 
+                } else { 
+                    document.getElementById('player-status').innerText = "EXECUTE ATTACK!"; 
+                    btnAttack.style.display = 'block'; 
+                    btnCaught.style.display = 'block'; 
                 }
             }
         }
 
-        function hideActionButtons() {
+        function hideActionButtons() { 
             document.getElementById('btn-move').style.display = 'none';
             document.getElementById('btn-attack').style.display = 'none';
             document.getElementById('btn-caught').style.display = 'none';
         }
 
-        function confirmMove() {
-            pMovesCompleted++;
+        function confirmMove() { 
+            pMovesCompleted++; 
             
-            // If intruder reached end of cycle
-            if (clientRole === 'intruder' && pMovesCompleted > 5) {
-                pMovesCompleted = 0; 
+            if (clientRole === 'intruder') {
+                if (pMovesCompleted > 5) {
+                    pMovesCompleted = 0; 
+                }
             }
-
-            pWaitingForInput = false;
-            hideActionButtons();
-            pTimeLeft = getCooldown();
-            pLastTick = Date.now();
+            
+            pWaitingForInput = false; 
+            hideActionButtons(); 
+            pTimeLeft = getCooldown(); 
+            pLastTick = Date.now(); 
             updateClientText();
         }
 
-        function confirmAttack() { cycleReset(); }
-        function confirmCaught() { cycleReset(); }
-
-        function cycleReset() {
-            pMovesCompleted = 0;
-            pWaitingForInput = false;
-            hideActionButtons();
-            pTimeLeft = getCooldown();
-            pLastTick = Date.now();
+        function confirmAttack() { 
+            pMovesCompleted = 0; // Reset Animatronic cycle
+            pWaitingForInput = false; 
+            hideActionButtons(); 
+            pTimeLeft = getCooldown(); 
+            pLastTick = Date.now(); 
             updateClientText();
+        }
+
+        function confirmCaught() { 
+            pMovesCompleted = 0; // Reset Animatronic cycle
+            pWaitingForInput = false; 
+            hideActionButtons(); 
+            pTimeLeft = getCooldown(); 
+            pLastTick = Date.now(); 
+            updateClientText(); 
         }
 
         // ==========================================
@@ -552,39 +805,60 @@
         async function joinCamera() {
             const pin = document.getElementById('room-input').value;
             const roomSelection = document.getElementById('camera-room-select').value;
-            if (pin.length !== 4) return (document.getElementById('join-status').innerText = "Enter 4-digit code.");
-
-            document.getElementById('join-status').innerText = "Accessing Camera...";
-
-            try {
-                // Request back camera
-                localMediaStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment" }, 
-                    audio: false 
-                });
-            } catch (err) {
-                document.getElementById('join-status').innerText = "Camera permission denied!";
+            
+            if (pin.length !== 4) {
+                document.getElementById('join-status').innerText = "Enter 4-digit code.";
                 return;
             }
 
+            document.getElementById('join-status').innerText = "Accessing Camera...";
+
+            // Keep screen awake (WakeLock API)
+            try { 
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen'); 
+                }
+            } catch (err) { 
+                console.log('WakeLock error:', err); 
+            }
+
+            try {
+                // Stabilized lower resolution to prevent phone thermal-throttling/freezing
+                localMediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: "environment", 
+                        width: { ideal: 640 }, 
+                        frameRate: { ideal: 15 } 
+                    }, 
+                    audio: false 
+                });
+            } catch (err) { 
+                document.getElementById('join-status').innerText = "Camera permission denied!";
+                return; 
+            }
+
             peer = new Peer();
+            
             peer.on('open', () => {
                 document.getElementById('join-status').innerText = "Calling Host...";
                 
-                // Call host with the stream
                 let call = peer.call(PREFIX + pin, localMediaStream, { metadata: { room: roomSelection } });
                 
                 showView('camera-client-view');
                 document.getElementById('cam-client-title').innerText = roomSelection.toUpperCase();
                 document.getElementById('local-video').srcObject = localMediaStream;
 
-                // Also maintain a data connection so we show up in player count
-                peer.connect(PREFIX + pin);
+                // Open data channel to stay connected and send keep-alive pings
+                let camDataConn = peer.connect(PREFIX + pin);
+                setInterval(() => { 
+                    if (camDataConn && camDataConn.open) {
+                        camDataConn.send({ type: 'ping' }); 
+                    }
+                }, 3000);
             });
-
-            peer.on('error', () => {
-                document.getElementById('join-status').innerText = "Failed to connect. Host offline?";
-                if(localMediaStream) localMediaStream.getTracks().forEach(t => t.stop());
+            
+            peer.on('error', () => { 
+                document.getElementById('join-status').innerText = "Failed to connect. Is Host open?"; 
             });
         }
     </script>
